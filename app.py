@@ -47,6 +47,7 @@ if os.path.exists(data_dir):
             else:
                 file_path = os.path.join(data_dir, selected_option)
                 df = pd.read_csv(file_path, encoding='latin1')
+                df['Periode_File'] = selected_option
                 st.success(f"Berhasil memuat file: **{selected_option}**")
             
             # Fitur Pencarian Berdasarkan NIP atau Nama
@@ -122,7 +123,7 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik di Atas Tabel (Hanya Grand Total Total Terima dan PPh 21)
+            # Ringkasan Metrik di Atas Tabel
             col1, col2 = st.columns(2)
             col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
             col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
@@ -130,6 +131,42 @@ if os.path.exists(data_dir):
             # Tampilkan tabel data interaktif
             st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
             st.dataframe(formatted_df, use_container_width=True)
+            
+            # --- BAGIAN DIAGRAM BATANG (BAR CHART) DENGAN WARNA MERAH ---
+            st.markdown("---")
+            st.subheader("📊 Diagram Batang Tren Berdasarkan Nama File Periode")
+            
+            if 'Periode_File' in filtered_df.columns and not filtered_df.empty:
+                target_grafik = None
+                for c in ['Total Terima', 'Total']:
+                    if c in filtered_df.columns:
+                        target_grafik = c
+                        break
+                
+                if target_grafik:
+                    df_chart = filtered_df.copy()
+                    df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
+                    
+                    chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
+                    chart_data['Sort_ID'] = chart_data['Periode_File'].apply(sort_key)
+                    chart_data = chart_data.sort_values('Sort_ID').set_index('Periode_File')
+                    
+                    # Menggunakan Altair untuk kustomisasi Diagram Batang (Bar Chart) berwarna Merah
+                    import altair as alt
+                    
+                    chart_altair = alt.Chart(chart_data.reset_index()).mark_bar(color='#E53935').encode(
+                        x=alt.X('Periode_File:N', sort=list(chart_data.index), title='Periode File'),
+                        y=alt.Y(f'{target_grafik}:Q', title=f'Jumlah {target_grafik}'),
+                        tooltip=['Periode_File', target_grafik]
+                    ).properties(
+                        height=400
+                    )
+                    
+                    st.altair_chart(chart_altair, use_container_width=True)
+                else:
+                    st.info("Kolom untuk grafik tidak ditemukan.")
+            else:
+                st.info("Tidak ada data untuk ditampilkan dalam grafik.")
             
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses data: {e}")
