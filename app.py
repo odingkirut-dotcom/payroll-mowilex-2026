@@ -41,7 +41,6 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
-        # Perbaikan logika urutan file (mendukung angka desimal seperti 1, 1.2, 2, 3...)
         def sort_key(filename):
             try:
                 prefix = filename.split()[0]
@@ -84,6 +83,7 @@ if os.path.exists(data_dir):
                 for file in selected_files:
                     f_path = os.path.join(data_dir, file)
                     temp_df = pd.read_csv(f_path, encoding='latin1')
+                    temp_df.columns = temp_df.columns.str.strip()  # Bersihkan spasi nama kolom
                     temp_df['Periode_File'] = file
                     df_list.append(temp_df)
                 
@@ -97,6 +97,7 @@ if os.path.exists(data_dir):
                     for file in csv_files:
                         f_path = os.path.join(data_dir, file)
                         temp_df = pd.read_csv(f_path, encoding='latin1')
+                        temp_df.columns = temp_df.columns.str.strip()  # Bersihkan spasi nama kolom
                         temp_df['Periode_File'] = file
                         df_list.append(temp_df)
                     
@@ -104,6 +105,7 @@ if os.path.exists(data_dir):
                 else:
                     file_path = os.path.join(data_dir, selected_option)
                     df = pd.read_csv(file_path, encoding='latin1')
+                    df.columns = df.columns.str.strip()  # Bersihkan spasi nama kolom
                     df['Periode_File'] = selected_option
             
             if search_query:
