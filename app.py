@@ -64,15 +64,16 @@ if os.path.exists(data_dir):
             # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
-            # 1. Perbaikan Format Tanggal Excel (membersihkan nilai 0 / kosong agar tidak jadi 1899)
+            # 1. Perbaikan Format Tanggal yang aman dari teks/None
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
+                    # Konversi paksa ke numerik (jika gagal/teks akan menjadi NaN)
                     numeric_dates = pd.to_numeric(formatted_df[col], errors='coerce')
-                    # Abaikan angka 0 atau di bawah 1 (dianggap kosong/belum ada tanggal keluar)
-                    numeric_dates = numeric_dates.apply(lambda x: x if pd.notnull(x) and x > 1 else None)
+                    # Hanya ambil angka di atas 1 (mengabaikan 0, NaN, atau teks)
+                    valid_dates = numeric_dates.where(numeric_dates > 1, other=pd.NA)
                     
-                    converted_dates = pd.to_datetime(numeric_dates, unit='D', origin='1899-12-30', errors='coerce')
+                    converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
             # 2. Format Angka Finansial menjadi ribuan murni tanpa desimal
