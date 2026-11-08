@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import os
 import altair as alt
+import io
 
 # Konfigurasi halaman Streamlit
 st.set_page_config(
@@ -160,8 +161,25 @@ if os.path.exists(data_dir):
             col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
             col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
             
+            # Header Tabel & Tombol Export ke Excel
+            st.markdown("---")
+            col_title, col_export = st.columns([3, 1])
+            with col_title:
+                st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
+            with col_export:
+                # Konversi DataFrame yang ditampilkan menjadi file Excel (in-memory buffer)
+                buffer = io.BytesIO()
+                with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                    formatted_df.to_excel(writer, index=False, sheet_name='Data_Payroll')
+                
+                st.download_button(
+                    label="📥 Export ke Excel (.xlsx)",
+                    data=buffer.getvalue(),
+                    file_name="rekap_payroll_mowilex.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            
             # Tampilkan tabel data interaktif
-            st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
             st.dataframe(formatted_df, use_container_width=True)
             
             # --- BAGIAN DIAGRAM BATANG NORMALISASI PERSENTASE (MERAH) ---
