@@ -37,6 +37,17 @@ st.title("📊 Dashboard Payroll & Absensi Mowilex 2026")
 data_dir = "Mowilex/Honor/2026"
 insentif_dir = "Mowilex/Insentif/2026"
 
+# Fungsi untuk membersihkan nama file agar tampil bersih sebagai periode
+def format_nama_periode(filename):
+    # Hilangkan ekstensi .csv
+    nama_bersih = filename.replace('.csv', '').strip()
+    # Opsional: Jika ingin menghilangkan angka urutan di depan (misal "1. ")
+    if '.' in nama_bersih[:3]:
+        parts = nama_bersih.split('.', 1)
+        if parts[0].strip().isdigit():
+            nama_bersih = parts[1].strip()
+    return nama_bersih
+
 # Fungsi pembaca & pembantu penggabungan insentif berdasarkan NIP
 def merge_insentif_data(df_honor_raw, file_list):
     if df_honor_raw.empty or not os.path.exists(insentif_dir):
@@ -46,10 +57,8 @@ def merge_insentif_data(df_honor_raw, file_list):
     if not ins_files:
         return df_honor_raw
 
-    # Cari file insentif yang cocok dari file_list
     df_ins_list = []
     for f in ins_files:
-        # Cocokkan nama file atau ambil seluruh file jika mode gabungan
         if any(f.split()[0] == file.split()[0] for file in file_list):
             f_ins_path = os.path.join(insentif_dir, f)
             try:
@@ -67,15 +76,20 @@ def merge_insentif_data(df_honor_raw, file_list):
         return df_honor_raw
 
     # Hapus kolom duplikat dari data insentif agar tidak double (kecuali NIP)
-    kolom_duplikat = ['Nama', 'NPWP', 'Posisi', 'Coverage', 'Kota', 'Status', 'Masuk', 'Keluar', 'Biaya Transfer', 'PPh21']
+    kolom_duplikat = ['Nama', 'NPWP', 'Posisi', 'Coverage', 'Kota', 'Status', 'Masuk', 'Keluar', 'Biaya Transfer', 'PPh21', 'Total Terima']
     df_insentif_clean = df_insentif_all.drop(columns=[c for c in kolom_duplikat if c in df_insentif_all.columns], errors='ignore')
     
     # Left join berdasarkan NIP
     df_merged = pd.merge(df_honor_raw, df_insentif_clean, on='NIP', how='left', suffixes=('', '_insentif'))
     
+    # Hapus kolom sisa duplikat berakhiran _insentif yang tidak diperlukan
+    for col in list(df_merged.columns):
+        if col.endswith('_insentif') and col.replace('_insentif', '') in df_honor_raw.columns:
+            df_merged.drop(columns=[col], inplace=True)
+
     # Pindahkan kolom baru dari insentif tepat setelah kolom 'Total Terima'
     cols = list(df_merged.columns)
-    kolom_baru = [c for c in df_insentif_clean.columns if c != 'NIP' and c not in cols[:cols.index('Total Terima') if 'Total Terima' in cols else 0]]
+    kolom_baru = [c for c in df_insentif_clean.columns if c != 'NIP' and c in cols and c not in cols[:cols.index('Total Terima') if 'Total Terima' in cols else 0]]
     
     for c_new in kolom_baru:
         if c_new in cols:
@@ -135,7 +149,7 @@ if os.path.exists(data_dir):
                     f_path = os.path.join(data_dir, file)
                     temp_df = pd.read_csv(f_path, encoding='latin1')
                     temp_df.columns = temp_df.columns.str.strip()
-                    temp_df['Periode_File'] = file
+                    temp_df['Periode_File'] = format_nama_periode(file)
                     df_list.append(temp_df)
                 
                 df = pd.concat(df_list, ignore_index=True)
@@ -150,7 +164,7 @@ if os.path.exists(data_dir):
                         f_path = os.path.join(data_dir, file)
                         temp_df = pd.read_csv(f_path, encoding='latin1')
                         temp_df.columns = temp_df.columns.str.strip()
-                        temp_df['Periode_File'] = file
+                        temp_df['Periode_File'] = format_nama_periode(file)
                         df_list.append(temp_df)
                     
                     df = pd.concat(df_list, ignore_index=True)
@@ -159,7 +173,7 @@ if os.path.exists(data_dir):
                     file_path = os.path.join(data_dir, selected_option)
                     df = pd.read_csv(file_path, encoding='latin1')
                     df.columns = df.columns.str.strip()
-                    df['Periode_File'] = selected_option
+                    df['Periode_File'] = format_nama_periode(selected_option)
                     df = merge_insentif_data(df, [selected_option])
             
             if search_query:
@@ -179,7 +193,6 @@ if os.path.exists(data_dir):
             kolom_uang = []
             for col in df.columns:
                 col_lower = col.lower()
-                # Pastikan kolom status pembayaran honor TIDAK masuk ke kolom hitung keuangan
                 if 'status pembayaran' in col_lower:
                     continue
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
@@ -321,7 +334,7 @@ if os.path.exists(data_dir):
                     df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
                     
                     chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
-                    chart_data['Sort_ID'] = chart_data['Periode_File'].apply(sort_key)
+                    chart_data['Sort_ID'] = chart_data['Periode_File'].apply(lambda x: sort_key(x) if x in csv_files else 0)
                     chart_data = chart_data.sort_values('Sort_ID')
                     
                     sum_all = chart_data[target_grafik].sum()
