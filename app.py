@@ -11,12 +11,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk memadatkan padding dan mempercantik tampilan
+# Custom CSS untuk memadatkan padding atas secara maksimal dan mempercantik tampilan
 st.markdown("""
     <style>
-    /* Mengurangi jarak kosong/padding atas bawaan Streamlit */
+    /* Pangkas ruang kosong/padding atas bawaan Streamlit secara agresif */
     .block-container {
-        padding-top: 1.5rem !important;
+        padding-top: 0.8rem !important;
         padding-bottom: 2rem !important;
     }
     
@@ -184,10 +184,11 @@ if os.path.exists(data_dir):
                         lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
                     )
             
-            # Tambahkan baris TOTAL di bagian paling bawah tabel
-            if not formatted_df.empty and total_values:
-                row_total = {col: "" for col in formatted_df.columns}
-                first_col = formatted_df.columns[0]
+            # Buat salinan lengkap dengan baris total untuk keperluan Excel
+            excel_df = formatted_df.copy()
+            if not excel_df.empty and total_values:
+                row_total = {col: "" for col in excel_df.columns}
+                first_col = excel_df.columns[0]
                 row_total[first_col] = "TOTAL Keseluruhan"
                 
                 for col, val in total_values.items():
@@ -195,7 +196,7 @@ if os.path.exists(data_dir):
                         row_total[col] = f"{val:,.0f}"
                 
                 df_total_row = pd.DataFrame([row_total])
-                formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
+                excel_df = pd.concat([excel_df, df_total_row], ignore_index=True)
             
             # Ringkasan Metrik di Atas Tabel
             st.markdown("---")
@@ -211,7 +212,7 @@ if os.path.exists(data_dir):
             with col_export:
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                    formatted_df.to_excel(writer, index=False, sheet_name='Data_Payroll')
+                    excel_df.to_excel(writer, index=False, sheet_name='Data_Payroll')
                 
                 st.download_button(
                     label="📥 Export ke Excel (.xlsx)",
@@ -220,8 +221,42 @@ if os.path.exists(data_dir):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
             
-            # Tampilkan tabel data interaktif
-            st.dataframe(formatted_df, use_container_width=True, height=450, hide_index=True)
+            # --- SISTEM PAGINASI (MAKSIMAL 20 BARIS PER HALAMAN) ---
+            items_per_page = 20
+            total_rows = len(formatted_df)
+            
+            if total_rows > 0:
+                total_pages = (total_rows - 1) // items_per_page + 1
+                
+                # Kontrol navigasi halaman di atas tabel sebelah kanan
+                col_pag_info, col_pag_select = st.columns([2, 1])
+                with col_pag_info:
+                    st.caption(f"Menampilkan total {total_rows} data karyawan (Maks. {items_per_page} baris per halaman)")
+                with col_pag_select:
+                    current_page = st.number_input("Halaman:", min_value=1, max_value=total_pages, value=1, step=1)
+                
+                # Potong data sesuai halaman aktif
+                start_idx_page = (current_page - 1) * items_per_page
+                end_idx_page = start_idx_page + items_per_page
+                paginated_df = formatted_df.iloc[start_idx_page:end_idx_page].copy()
+                
+                # Jika ini halaman terakhir, sisipkan baris rekapitulasi total di bagian bawah tabel
+                if current_page == total_pages and total_values:
+                    row_total = {col: "" for col in formatted_df.columns}
+                    first_col = formatted_df.columns[0]
+                    row_total[first_col] = "TOTAL Keseluruhan"
+                    
+                    for col, val in total_values.items():
+                        if col in row_total:
+                            row_total[col] = f"{val:,.0f}"
+                    
+                    df_total_row = pd.DataFrame([row_total])
+                    paginated_df = pd.concat([paginated_df, df_total_row], ignore_index=True)
+                
+                # Tampilkan tabel data interaktif per halaman
+                st.dataframe(paginated_df, use_container_width=True, height=450, hide_index=True)
+            else:
+                st.info("Tidak ada data karyawan yang ditemukan.")
             
             # --- BAGIAN DIAGRAM BATANG NORMALISASI PERSENTASE (MERAH) ---
             st.markdown("---")
