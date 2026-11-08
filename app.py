@@ -61,6 +61,35 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
+            # Deteksi otomatis kolom keuangan secara menyeluruh
+            keyword_uang = [
+                'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
+                'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total'
+            ]
+            
+            kolom_uang = []
+            for col in df.columns:
+                col_lower = col.lower()
+                if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
+                    kolom_uang.append(col)
+            
+            # Hitung nilai Grand Total untuk 'Total Terima' dan 'PPh21' (fleksibel mendeteksi variasi nama kolom)
+            total_terima_filtered = 0
+            pph21_filtered = 0
+            
+            for col in filtered_df.columns:
+                col_lower = col.lower()
+                if 'total terima' in col_lower:
+                    total_terima_filtered = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0).sum()
+                elif 'pph' in col_lower:
+                    pph21_filtered = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0).sum()
+            
+            # Hitung total (sum) untuk seluruh kolom keuangan di baris bawah tabel
+            total_values = {}
+            for col in kolom_uang:
+                numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
+                total_values[col] = numeric_series.sum()
+            
             # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
@@ -73,30 +102,12 @@ if os.path.exists(data_dir):
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
-            # 2. Deteksi otomatis kolom keuangan secara menyeluruh (termasuk kolom 'total')
-            keyword_uang = [
-                'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
-                'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total'
-            ]
-            
-            kolom_uang = []
-            for col in formatted_df.columns:
-                col_lower = col.lower()
-                # Pastikan kolom teks identitas tidak masuk ke dalam hitungan uang
-                if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
-                    kolom_uang.append(col)
-            
-            # Hitung total (sum) untuk setiap kolom keuangan
-            total_values = {}
+            # 2. Format angka finansial menjadi ribuan murni tanpa desimal bergaya accounting
             for col in kolom_uang:
-                numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
-                total_values[col] = numeric_series.sum()
-            
-            # Format angka finansial menjadi ribuan murni tanpa desimal bergaya accounting
-            for col in kolom_uang:
-                formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
-                    lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
-                )
+                if col in formatted_df.columns:
+                    formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
+                        lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
+                    )
             
             # Tambahkan baris TOTAL di bagian paling bawah tabel
             if not formatted_df.empty and total_values:
@@ -111,11 +122,12 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik
-            col1, col2, col3 = st.columns(3)
-            col1.metric(label="Total Data Ditampilkan", value=filtered_df.shape[0])
+            # Ringkasan Metrik di Atas Tabel (Total Data, Total Terima, dan PPh 21)
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric(label="Data Ditampilkan", value=filtered_df.shape[0])
             col2.metric(label="Total Seluruh Baris", value=df.shape[0])
-            col3.metric(label="Total Kolom", value=df.shape[1])
+            col3.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
+            col4.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
             
             # Tampilkan tabel data interaktif
             st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
