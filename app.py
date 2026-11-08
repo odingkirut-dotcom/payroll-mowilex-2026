@@ -121,16 +121,23 @@ if all_files_info:
                 df.columns = df.columns.str.strip()
                 df['Periode_File'] = selected_option.replace('.csv', '')
         
-        # --- ATUR POSISI KOLOM KHUSUS INSENTIF SEBELUM 'Biaya ( F - 04 )' ---
+        # --- ATUR POSISI KOLOM INSENTIF TEPAT SEBELUM KOLOM BIAYA / F-04 ---
         if not df.empty:
             cols = list(df.columns)
             target_col = None
             for c in cols:
-                if 'biaya' in c.lower() and ('f-04' in c.lower() or 'f - 04' in c.lower()):
+                c_low = c.lower()
+                if 'f-04' in c_low or 'f - 04' in c_low or (c_low.startswith('biaya') and 'f' in c_low):
                     target_col = c
                     break
             
-            # Deteksi kolom insentif (misal: Insentif Booster Daily Meals, dll)
+            # Jika tidak ketemu spesifik f-04, cari kolom yang mengandung kata 'biaya' setelah kolom honor
+            if not target_col:
+                for c in cols:
+                    if c.lower() == 'biaya':
+                        target_col = c
+                        break
+
             kolom_insentif = [c for c in cols if 'insentif' in c.lower() or 'booster' in c.lower()]
             
             if target_col and kolom_insentif:
@@ -154,10 +161,10 @@ if all_files_info:
         else:
             filtered_df = df
         
-        # Deteksi otomatis kolom keuangan
+        # Deteksi otomatis kolom keuangan (pastikan semua kata kunci masuk)
         keyword_uang = [
             'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
-            'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total', 'insentif'
+            'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total', 'insentif', 'booster'
         ]
         
         kolom_uang = []
