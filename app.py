@@ -21,7 +21,7 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
-        # Urutkan file secara numerik (1, 2, 3 ... 10, 11)
+        # Urutkan file secara numerik (1, 2, 3 ... 10, 11) berdasarkan angka depan
         def sort_key(filename):
             try:
                 return int(filename.split('.')[0])
@@ -30,14 +30,33 @@ if os.path.exists(data_dir):
                 
         csv_files.sort(key=sort_key)
         
-        # Pilihan menu dropdown
+        # Tambahkan opsi untuk melihat semua file sekaligus di bagian atas
         pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
-        selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu)
+        
+        # Buat filter rentang periode (Dari - Sampai)
+        st.sidebar.markdown("### 📅 Filter Rentang Periode")
+        use_range = st.sidebar.checkbox("Gunakan Rentang Periode (Dari - Sampai)", value=False)
         
         try:
-            if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
+            if use_range:
+                col_p1, col_p2 = st.columns(2)
+                with col_p1:
+                    start_period = st.selectbox("Dari Periode:", csv_files, index=0)
+                with col_p2:
+                    end_period = st.selectbox("Sampai Periode:", csv_files, index=len(csv_files)-1)
+                
+                # Cari indeks untuk rentang file
+                start_idx = sort_key(start_period)
+                end_idx = sort_key(end_period)
+                
+                # Validasi dan ambil file sesuai rentang
+                selected_files = [f for f in csv_files if start_idx <= sort_key(f) <= end_idx]
+                
+                if not selected_files:
+                    selected_files = [start_period]
+                
                 df_list = []
-                for file in csv_files:
+                for file in selected_files:
                     f_path = os.path.join(data_dir, file)
                     temp_df = pd.read_csv(f_path, encoding='latin1')
                     temp_df['Periode_File'] = file
@@ -45,10 +64,22 @@ if os.path.exists(data_dir):
                 
                 df = pd.concat(df_list, ignore_index=True)
             else:
-                file_path = os.path.join(data_dir, selected_option)
-                df = pd.read_csv(file_path, encoding='latin1')
-                df['Periode_File'] = selected_option
-                st.success(f"Berhasil memuat file: **{selected_option}**")
+                selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu)
+                
+                if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
+                    df_list = []
+                    for file in csv_files:
+                        f_path = os.path.join(data_dir, file)
+                        temp_df = pd.read_csv(f_path, encoding='latin1')
+                        temp_df['Periode_File'] = file
+                        df_list.append(temp_df)
+                    
+                    df = pd.concat(df_list, ignore_index=True)
+                else:
+                    file_path = os.path.join(data_dir, selected_option)
+                    df = pd.read_csv(file_path, encoding='latin1')
+                    df['Periode_File'] = selected_option
+                    st.success(f"Berhasil memuat file: **{selected_option}**")
             
             # Fitur Pencarian Berdasarkan NIP atau Nama
             st.markdown("---")
