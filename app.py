@@ -61,7 +61,7 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
-            # Format angka finansial menjadi string berformat pemisah ribuan agar rapi
+            # Format angka finansial menjadi format ribuan tanpa desimal (tanpa koma 00 di belakang)
             kolom_uang = [
                 'Gaji Pokok', 'Uang Harian', 'Gaji Pokok Diterima', 
                 'Total Uang harian', 'Uang Pulsa', 'Kompensasi UUCK', 
@@ -71,9 +71,9 @@ if os.path.exists(data_dir):
             formatted_df = filtered_df.copy()
             for col in kolom_uang:
                 if col in formatted_df.columns:
-                    # Ubah ke numerik dulu, lalu format dengan koma pemisah ribuan
+                    # Menggunakan {:,.0f} agar dibulatkan dan tidak ada desimal di belakang koma
                     formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
-                        lambda x: f"{x:,.2f}" if pd.notnull(x) else ""
+                        lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
                     )
             
             # Ringkasan Metrik
