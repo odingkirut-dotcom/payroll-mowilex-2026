@@ -41,11 +41,13 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
+        # Perbaikan logika urutan file (mendukung angka desimal seperti 1, 1.2, 2, 3...)
         def sort_key(filename):
             try:
-                return int(filename.split('.')[0])
+                prefix = filename.split()[0]
+                return float(prefix)
             except:
-                return 999
+                return 999.0
                 
         csv_files.sort(key=sort_key)
         
@@ -195,11 +197,6 @@ if os.path.exists(data_dir):
             if total_rows > 0:
                 total_pages = (total_rows - 1) // items_per_page + 1
                 
-                # Tampilkan tabel terlebih dahulu
-                start_idx_page = 0
-                end_idx_page = items_per_page
-                
-                # Gunakan session_state untuk menyimpan halaman aktif
                 if 'current_page' not in st.session_state:
                     st.session_state.current_page = 1
                 
@@ -225,7 +222,7 @@ if os.path.exists(data_dir):
                 # Render Tabel
                 st.dataframe(paginated_df, use_container_width=True, height=400, hide_index=True)
                 
-                # Kontrol Paginasi di Bagian Bawah Tabel (Kecil & Rapi)
+                # Kontrol Paginasi di Bagian Bawah Tabel
                 col_info, col_space, col_nav = st.columns([2, 1, 1.5])
                 with col_info:
                     st.caption(f"Total Data: {total_rows} | Halaman {st.session_state.current_page} dari {total_pages}")
