@@ -311,33 +311,39 @@ if all_files_info:
             
             if target_grafik:
                 df_chart = filtered_df.copy()
-                df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
+                # KECUALIKAN DATA INSENTIF DARI GRAFIK
+                df_chart = df_chart[~df_chart['Periode_File'].astype(str).str.contains('Insentif', case=False, na=False)]
                 
-                chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
-                chart_data['Sort_ID'] = chart_data['Periode_File'].apply(lambda x: sort_key(x))
-                chart_data = chart_data.sort_values('Sort_ID').reset_index(drop=True)
-                
-                sum_all = chart_data[target_grafik].sum()
-                if sum_all > 0:
-                    chart_data['Persentase'] = (chart_data[target_grafik] / sum_all) * 100
-                else:
-                    chart_data['Persentase'] = 0.0
+                if not df_chart.empty:
+                    df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
                     
-                chart_data['Formatted_Pct'] = chart_data['Persentase'].apply(lambda x: f"{x:.2f}%")
-                sorted_periode_list = list(chart_data['Periode_File'])
-                
-                chart_altair = alt.Chart(chart_data).mark_bar(color='#E53935').encode(
-                    x=alt.X('Periode_File:N', sort=sorted_periode_list, title='Periode File'),
-                    y=alt.Y('Persentase:Q', title='Kontribusi (%)', axis=alt.Axis(format='.1f')),
-                    tooltip=[
-                        alt.Tooltip('Periode_File:N', title='Periode'),
-                        alt.Tooltip('Formatted_Pct:N', title='Kontribusi')
-                    ]
-                ).properties(
-                    height=350
-                )
-                
-                st.altair_chart(chart_altair, use_container_width=True)
+                    chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
+                    chart_data['Sort_ID'] = chart_data['Periode_File'].apply(lambda x: sort_key(x))
+                    chart_data = chart_data.sort_values('Sort_ID').reset_index(drop=True)
+                    
+                    sum_all = chart_data[target_grafik].sum()
+                    if sum_all > 0:
+                        chart_data['Persentase'] = (chart_data[target_grafik] / sum_all) * 100
+                    else:
+                        chart_data['Persentase'] = 0.0
+                        
+                    chart_data['Formatted_Pct'] = chart_data['Persentase'].apply(lambda x: f"{x:.2f}%")
+                    sorted_periode_list = list(chart_data['Periode_File'])
+                    
+                    chart_altair = alt.Chart(chart_data).mark_bar(color='#E53935').encode(
+                        x=alt.X('Periode_File:N', sort=sorted_periode_list, title='Periode File'),
+                        y=alt.Y('Persentase:Q', title='Kontribusi (%)', axis=alt.Axis(format='.1f')),
+                        tooltip=[
+                            alt.Tooltip('Periode_File:N', title='Periode'),
+                            alt.Tooltip('Formatted_Pct:N', title='Kontribusi')
+                        ]
+                    ).properties(
+                        height=350
+                    )
+                    
+                    st.altair_chart(chart_altair, use_container_width=True)
+                else:
+                    st.info("Tidak ada data honor untuk ditampilkan dalam grafik.")
             else:
                 st.info("Kolom untuk grafik tidak ditemukan.")
         else:
