@@ -61,23 +61,7 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
-            # Daftar kolom keuangan/finansial
-            kolom_uang = [
-                'Gaji Pokok', 'Uang Harian', 'Gaji Pokok Diterima', 'Total Uang harian', 
-                'Uang Pulsa', 'Kompensasi UUCK', 'Honor Bulan Lalu', 'Honor Bulan Lalu.1', 
-                'Lembur', 'Total Terima', 'Total Honor', 'PPH21', 'BPJS TK 3%', 
-                'BPJS KS 1%', 'BPJS KS 1%.1', 'Biaya Transfer', '+/- Honor Bulan Lalu', 
-                'Total', 'Biaya', '( F - 04 )', 'Transp. LK', '( F - 05 )', '+/- Biaya Bulan lalu', 'Lain - Lain'
-            ]
-            
-            # Hitung total (sum) untuk setiap kolom keuangan sebelum diformat menjadi string
-            total_values = {}
-            for col in kolom_uang:
-                if col in filtered_df.columns:
-                    numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
-                    total_values[col] = numeric_series.sum()
-            
-            # Buat salinan untuk diformat tanggalnya
+            # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
             # 1. Format Tanggal
@@ -89,26 +73,41 @@ if os.path.exists(data_dir):
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
-            # 2. Format Angka Finansial menjadi ribuan murni tanpa desimal
-            for col in kolom_uang:
-                if col in formatted_df.columns:
-                    formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
-                        lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
-                    )
+            # 2. Deteksi otomatis kolom keuangan atau gunakan daftar lengkap (mencakup variasi pph21, dll)
+            keyword_uang = [
+                'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
+                'pph', 'bpjs', 'biaya', 'transp', 'lain'
+            ]
             
-            # Tambahkan baris TOTAL di bagian paling bawah tabel jika data tidak kosong
+            # Tentukan kolom mana saja yang termasuk kolom keuangan berdasarkan nama kolomnya
+            kolom_uang = []
+            for col in formatted_df.columns:
+                col_lower = col.lower()
+                if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
+                    kolom_uang.append(col)
+            
+            # Hitung total (sum) untuk setiap kolom keuangan
+            total_values = {}
+            for col in kolom_uang:
+                numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
+                total_values[col] = numeric_series.sum()
+            
+            # Format angka finansial menjadi ribuan murni tanpa desimal
+            for col in kolom_uang:
+                formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
+                    lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
+                )
+            
+            # Tambahkan baris TOTAL di bagian paling bawah tabel
             if not formatted_df.empty and total_values:
                 row_total = {col: "" for col in formatted_df.columns}
-                # Cari kolom pertama yang tersedia untuk label "TOTAL"
                 first_col = formatted_df.columns[0]
                 row_total[first_col] = "TOTAL Keseluruhan"
                 
-                # Masukkan hasil penjumlahan ke baris total
                 for col, val in total_values.items():
                     if col in row_total:
                         row_total[col] = f"{val:,.0f}"
                 
-                # Gabungkan baris total ke DataFrame menggunakan pd.concat
                 df_total_row = pd.DataFrame([row_total])
                 formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
             
