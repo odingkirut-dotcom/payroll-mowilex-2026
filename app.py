@@ -52,10 +52,10 @@ if os.path.exists(insentif_dir):
 
 if all_files_info:
     def sort_key(item):
-        filename = item[0]
+        filename = item[0] if isinstance(item, tuple) else item
         try:
-            prefix = filename.split()[0]
-            return float(prefix)
+            prefix = str(filename).split()[0]
+            return float(prefix.replace('.', ''))
         except:
             return 999.0
 
@@ -85,10 +85,10 @@ if all_files_info:
             with col_p2:
                 end_period = st.selectbox("Sampai Periode:", csv_files_only, index=len(csv_files_only)-1, label_visibility="collapsed")
             
-            start_idx = sort_key((start_period, ''))
-            end_idx = sort_key((end_period, ''))
+            start_idx = sort_key(start_period)
+            end_idx = sort_key(end_period)
             
-            selected_files = [f for f in csv_files_only if start_idx <= sort_key((f, '')) <= end_idx]
+            selected_files = [f for f in csv_files_only if start_idx <= sort_key(f) <= end_idx]
             if not selected_files:
                 selected_files = [start_period]
             
@@ -131,7 +131,6 @@ if all_files_info:
                     target_col = c
                     break
             
-            # Jika tidak ketemu spesifik f-04, cari kolom yang mengandung kata 'biaya' setelah kolom honor
             if not target_col:
                 for c in cols:
                     if c.lower() == 'biaya':
@@ -161,7 +160,7 @@ if all_files_info:
         else:
             filtered_df = df
         
-        # Deteksi otomatis kolom keuangan (pastikan semua kata kunci masuk)
+        # Deteksi otomatis kolom keuangan
         keyword_uang = [
             'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
             'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total', 'insentif', 'booster'
@@ -315,6 +314,8 @@ if all_files_info:
                 df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
                 
                 chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
+                chart_data['Sort_ID'] = chart_data['Periode_File'].apply(lambda x: sort_key(x))
+                chart_data = chart_data.sort_values('Sort_ID').reset_index(drop=True)
                 
                 sum_all = chart_data[target_grafik].sum()
                 if sum_all > 0:
@@ -323,9 +324,10 @@ if all_files_info:
                     chart_data['Persentase'] = 0.0
                     
                 chart_data['Formatted_Pct'] = chart_data['Persentase'].apply(lambda x: f"{x:.2f}%")
+                sorted_periode_list = list(chart_data['Periode_File'])
                 
                 chart_altair = alt.Chart(chart_data).mark_bar(color='#E53935').encode(
-                    x=alt.X('Periode_File:N', sort=list(chart_data['Periode_File']), title='Periode File'),
+                    x=alt.X('Periode_File:N', sort=sorted_periode_list, title='Periode File'),
                     y=alt.Y('Persentase:Q', title='Kontribusi (%)', axis=alt.Axis(format='.1f')),
                     tooltip=[
                         alt.Tooltip('Periode_File:N', title='Periode'),
