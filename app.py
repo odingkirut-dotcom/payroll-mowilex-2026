@@ -100,7 +100,6 @@ if all_files_info:
                 temp_df['Periode_File'] = file.replace('.csv', '')
                 df_list.append(temp_df)
             
-            # Gunakan pd.concat dengan sort=False agar kolom dari masing-masing file tetap tergabung dengan aman
             df = pd.concat(df_list, ignore_index=True, sort=False) if df_list else pd.DataFrame()
         else:
             pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files_only
@@ -138,7 +137,6 @@ if all_files_info:
                         target_col = c
                         break
 
-            # Ambil semua kolom yang mengandung kata insentif atau booster atau tinting
             kolom_insentif = [c for c in cols if any(kw in c.lower() for kw in ['insentif', 'booster', 'tinting'])]
             
             if target_col and kolom_insentif:
@@ -177,6 +175,13 @@ if all_files_info:
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Nama.1', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
         
+        # Helper untuk konversi angka yang aman dari format string ber-koma/titik
+        def to_num(series):
+            if series.dtype == object:
+                cleaned = series.astype(str).str.replace(',', '').str.replace('Rp', '').str.strip()
+                return pd.to_numeric(cleaned, errors='coerce').fillna(0)
+            return pd.to_numeric(series, errors='coerce').fillna(0)
+
         total_terima_filtered = 0
         pph21_filtered = 0
         
@@ -184,15 +189,14 @@ if all_files_info:
             for col in filtered_df.columns:
                 col_lower = col.lower()
                 if 'total terima' in col_lower:
-                    total_terima_filtered += pd.to_numeric(filtered_df[col], errors='coerce').fillna(0).sum()
+                    total_terima_filtered += to_num(filtered_df[col]).sum()
                 elif 'pph' in col_lower:
-                    pph21_filtered += pd.to_numeric(filtered_df[col], errors='coerce').fillna(0).sum()
+                    pph21_filtered += to_num(filtered_df[col]).sum()
         
         total_values = {}
         for col in kolom_uang:
             if not filtered_df.empty and col in filtered_df.columns:
-                numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
-                total_values[col] = numeric_series.sum()
+                total_values[col] = to_num(filtered_df[col]).sum()
         
         formatted_df = filtered_df.copy() if not filtered_df.empty else pd.DataFrame()
         
@@ -205,11 +209,12 @@ if all_files_info:
                 converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                 formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
         
-        # Format kolom keuangan
+        # Format kolom keuangan dengan helper to_num
         for col in kolom_uang:
             if not formatted_df.empty and col in formatted_df.columns:
-                formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
-                    lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
+                numeric_series = to_num(formatted_df[col])
+                formatted_df[col] = numeric_series.apply(
+                    lambda x: f"{x:,.0f}" if x != 0 else ""
                 )
         
         # Tangani kolom Status Pembayaran
@@ -316,7 +321,7 @@ if all_files_info:
                 df_chart = df_chart[~df_chart['Periode_File'].astype(str).str.contains('Insentif', case=False, na=False)]
                 
                 if not df_chart.empty:
-                    df_chart[target_grafik] = pd.to_numeric(df_chart[target_grafik], errors='coerce').fillna(0)
+                    df_chart[target_grafik] = to_num(df_chart[target_grafik])
                     
                     chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
                     chart_data['Sort_ID'] = chart_data['Periode_File'].apply(lambda x: sort_key(x))
@@ -348,7 +353,7 @@ if all_files_info:
             else:
                 st.info("Kolom untuk grafik tidak ditemukan.")
         else:
-            st.info("Tidak ada data untuk deteksi grafik.")
+            st.info("Tidak ada data untuk ditampilkan dalam grafik.")
         
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memproses data: {e}")
