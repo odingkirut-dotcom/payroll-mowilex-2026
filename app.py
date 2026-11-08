@@ -11,6 +11,36 @@ st.set_page_config(
     layout="wide"
 )
 
+# Custom CSS untuk memperbesar font, merapikan tabel, dan memberikan aksen warna merah
+st.markdown("""
+    <style>
+    /* Perbesar font keseluruhan agar lebih nyaman di mata */
+    html, body, [class*="css"] {
+        font-size: 16px;
+    }
+    
+    /* Perbesar ukuran teks pada metrik */
+    [data-testid="stMetricValue"] {
+        font-size: 2rem !important;
+        color: #C62828 !important;
+    }
+    [data-testid="stMetricLabel"] {
+        font-size: 1.1rem !important;
+        font-weight: 600;
+    }
+    
+    /* Kustomisasi Header & Subheader beraksen merah */
+    h1, h2, h3 {
+        color: #B71C1C;
+    }
+    
+    /* Memperbesar teks isi tabel data */
+    .stDataFrame {
+        font-size: 15px !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 st.title("📊 Dashboard Payroll & Absensi Mowilex 2026")
 st.write("Aplikasi analisis data karyawan Mowilex secara online dan real-time.")
 
@@ -167,7 +197,6 @@ if os.path.exists(data_dir):
             with col_title:
                 st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
             with col_export:
-                # Konversi DataFrame yang ditampilkan menjadi file Excel (in-memory buffer)
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                     formatted_df.to_excel(writer, index=False, sheet_name='Data_Payroll')
@@ -180,7 +209,7 @@ if os.path.exists(data_dir):
                 )
             
             # Tampilkan tabel data interaktif
-            st.dataframe(formatted_df, use_container_width=True)
+            st.dataframe(formatted_df, use_container_width=True, height=450)
             
             # --- BAGIAN DIAGRAM BATANG NORMALISASI PERSENTASE (MERAH) ---
             st.markdown("---")
@@ -201,7 +230,6 @@ if os.path.exists(data_dir):
                     chart_data['Sort_ID'] = chart_data['Periode_File'].apply(sort_key)
                     chart_data = chart_data.sort_values('Sort_ID')
                     
-                    # Normalisasi nilai ke bentuk persentase (total semua periode = 100%)
                     sum_all = chart_data[target_grafik].sum()
                     if sum_all > 0:
                         chart_data['Persentase'] = (chart_data[target_grafik] / sum_all) * 100
