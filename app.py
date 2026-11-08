@@ -100,7 +100,8 @@ if all_files_info:
                 temp_df['Periode_File'] = file.replace('.csv', '')
                 df_list.append(temp_df)
             
-            df = pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
+            # Gunakan pd.concat dengan sort=False agar kolom dari masing-masing file tetap tergabung dengan aman
+            df = pd.concat(df_list, ignore_index=True, sort=False) if df_list else pd.DataFrame()
         else:
             pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files_only
             selected_option = st.selectbox("Pilih Periode:", pilihan_menu, label_visibility="collapsed")
@@ -114,7 +115,7 @@ if all_files_info:
                     temp_df['Periode_File'] = file.replace('.csv', '')
                     df_list.append(temp_df)
                 
-                df = pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
+                df = pd.concat(df_list, ignore_index=True, sort=False) if df_list else pd.DataFrame()
             else:
                 f_path = file_path_map[selected_option]
                 df = pd.read_csv(f_path, encoding='latin1')
@@ -137,7 +138,8 @@ if all_files_info:
                         target_col = c
                         break
 
-            kolom_insentif = [c for c in cols if 'insentif' in c.lower() or 'booster' in c.lower()]
+            # Ambil semua kolom yang mengandung kata insentif atau booster atau tinting
+            kolom_insentif = [c for c in cols if any(kw in c.lower() for kw in ['insentif', 'booster', 'tinting'])]
             
             if target_col and kolom_insentif:
                 for col_ins in kolom_insentif:
@@ -163,7 +165,7 @@ if all_files_info:
         # Deteksi otomatis kolom keuangan
         keyword_uang = [
             'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
-            'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total', 'insentif', 'booster'
+            'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total', 'insentif', 'booster', 'tinting'
         ]
         
         kolom_uang = []
@@ -311,7 +313,6 @@ if all_files_info:
             
             if target_grafik:
                 df_chart = filtered_df.copy()
-                # KECUALIKAN DATA INSENTIF DARI GRAFIK
                 df_chart = df_chart[~df_chart['Periode_File'].astype(str).str.contains('Insentif', case=False, na=False)]
                 
                 if not df_chart.empty:
@@ -347,7 +348,7 @@ if all_files_info:
             else:
                 st.info("Kolom untuk grafik tidak ditemukan.")
         else:
-            st.info("Tidak ada data untuk ditampilkan dalam grafik.")
+            st.info("Tidak ada data untuk deteksi grafik.")
         
     except Exception as e:
         st.error(f"Terjadi kesalahan saat memproses data: {e}")
