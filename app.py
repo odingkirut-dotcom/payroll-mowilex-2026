@@ -11,18 +11,18 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk memangkas habis ruang kosong atas dan membuat layout sangat padat
+# Custom CSS untuk merapikan ukuran judul agar tidak terpotong dan menjaga kerapian
 st.markdown("""
     <style>
-    /* Pangkas habis padding atas bawaan Streamlit agar langsung naik ke atas */
+    /* Atur padding atas agar judul tampil sempurna dan tidak terpotong */
     .block-container {
-        padding-top: 0.3rem !important;
+        padding-top: 1.2rem !important;
         padding-bottom: 2rem !important;
     }
     
-    /* Perkecil margin header agar lebih ringkas */
+    /* Perkecil ukuran judul utama agar pas dan proporsional */
     h1 {
-        font-size: 1.8rem !important;
+        font-size: 1.4rem !important;
         margin-bottom: 0px !important;
     }
     
@@ -184,7 +184,7 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 excel_df = pd.concat([excel_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik di Atas Tabel (dibuat lebih ringkas)
+            # Ringkasan Metrik di Atas Tabel
             m1, m2 = st.columns(2)
             m1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
             m2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
