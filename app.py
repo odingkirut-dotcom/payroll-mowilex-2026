@@ -37,22 +37,33 @@ st.title("📊 Dashboard Payroll & Absensi Mowilex 2026")
 honor_dir = "Mowilex/Honor/2026"
 insentif_dir = "Mowilex/Insentif/2026"
 
-# Kumpulkan file CSV dari kedua folder
-all_files_dict = {}
+# Kumpulkan semua file CSV dari kedua folder
+all_files_info = []
 
 if os.path.exists(honor_dir):
-    for f in os.listdir(honor_dir):
+    for f in sorted(os.listdir(honor_dir)):
         if f.endswith('.csv'):
-            all_files_dict[f"Honor - {f.replace('.csv', '')}"] = (honor_dir, f)
+            all_files_info.append((f, os.path.join(honor_dir, f)))
 
 if os.path.exists(insentif_dir):
-    for f in os.listdir(insentif_dir):
+    for f in sorted(os.listdir(insentif_dir)):
         if f.endswith('.csv'):
-            all_files_dict[f"Insentif - {f.replace('.csv', '')}"] = (insentif_dir, f)
+            all_files_info.append((f, os.path.join(insentif_dir, f)))
 
-if all_files_dict:
-    sorted_file_keys = sorted(all_files_dict.keys())
-    
+if all_files_info:
+    # Urutkan berdasarkan nomor di depan nama file jika ada
+    def sort_key(item):
+        filename = item[0]
+        try:
+            prefix = filename.split()[0]
+            return float(prefix)
+        except:
+            return 999.0
+
+    all_files_info.sort(key=sort_key)
+    csv_files_only = [item[0] for item in all_files_info]
+    file_path_map = {item[0]: item[1] for item in all_files_info}
+
     # Layout sejajar atas (Periode & Pencarian)
     col_filter, col_search = st.columns([1.3, 1])
     
@@ -71,50 +82,46 @@ if all_files_dict:
         if mode_tampilan == "📅 Rentang Periode":
             col_p1, col_p2 = st.columns(2)
             with col_p1:
-                start_period = st.selectbox("Dari Periode:", sorted_file_keys, index=0, label_visibility="collapsed")
+                start_period = st.selectbox("Dari Periode:", csv_files_only, index=0, label_visibility="collapsed")
             with col_p2:
-                end_period = st.selectbox("Sampai Periode:", sorted_file_keys, index=len(sorted_file_keys)-1, label_visibility="collapsed")
+                end_period = st.selectbox("Sampai Periode:", csv_files_only, index=len(csv_files_only)-1, label_visibility="collapsed")
             
-            # Ambil rentang index
-            start_idx = sorted_file_keys.index(start_period)
-            end_idx = sorted_file_keys.index(end_period)
-            if start_idx > end_idx:
-                start_idx, end_idx = end_idx, start_idx
-                
-            selected_keys = sorted_file_keys[start_idx:end_idx+1]
+            start_idx = sort_key((start_period, ''))
+            end_idx = sort_key((end_period, ''))
+            
+            selected_files = [f for f in csv_files_only if start_idx <= sort_key((f, '')) <= end_idx]
+            if not selected_files:
+                selected_files = [start_period]
             
             df_list = []
-            for key in selected_keys:
-                d_path, f_name = all_files_dict[key]
-                f_path = os.path.join(d_path, f_name)
+            for file in selected_files:
+                f_path = file_path_map[file]
                 temp_df = pd.read_csv(f_path, encoding='latin1')
                 temp_df.columns = temp_df.columns.str.strip()
-                temp_df['Periode_File'] = key
+                temp_df['Periode_File'] = file.replace('.csv', '')
                 df_list.append(temp_df)
             
             df = pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
         else:
-            pilihan_menu = ["📂 Gabungkan SEMUA File (Honor & Insentif)"] + sorted_file_keys
+            pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files_only
             selected_option = st.selectbox("Pilih Periode:", pilihan_menu, label_visibility="collapsed")
             
-            if selected_option == "📂 Gabungkan SEMUA File (Honor & Insentif)":
+            if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
                 df_list = []
-                for key, (d_path, f_name) in all_files_dict.items():
-                    f_path = os.path.join(d_path, f_name)
+                for file in csv_files_only:
+                    f_path = file_path_map[file]
                     temp_df = pd.read_csv(f_path, encoding='latin1')
                     temp_df.columns = temp_df.columns.str.strip()
-                    temp_df['Periode_File'] = key
+                    temp_df['Periode_File'] = file.replace('.csv', '')
                     df_list.append(temp_df)
                 
                 df = pd.concat(df_list, ignore_index=True) if df_list else pd.DataFrame()
             else:
-                d_path, f_name = all_files_dict[selected_option]
-                file_path = os.path.join(d_path, f_name)
-                df = pd.read_csv(file_path, encoding='latin1')
+                f_path = file_path_map[selected_option]
+                df = pd.read_csv(f_path, encoding='latin1')
                 df.columns = df.columns.str.strip()
-                df['Periode_File'] = selected_option
+                df['Periode_File'] = selected_option.replace('.csv', '')
         
-        # Filter pencarian
         if search_query and not df.empty:
             name_col = 'Nama' if 'Nama' in df.columns else ('Nama.1' if 'Nama.1' in df.columns else None)
             if name_col:
