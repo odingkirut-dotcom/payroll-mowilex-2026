@@ -30,28 +30,28 @@ if os.path.exists(data_dir):
                 
         csv_files.sort(key=sort_key)
         
-        # Tambahkan opsi untuk melihat semua file sekaligus di bagian atas
-        pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
+        # Opsi Pilihan Tampilan Langsung di Halaman Utama
+        st.markdown("---")
+        st.subheader("⚙️ Pengaturan Periode & Tampilan Data")
         
-        # Buat filter rentang periode (Dari - Sampai)
-        st.sidebar.markdown("### 📅 Filter Rentang Periode")
-        use_range = st.sidebar.checkbox("Gunakan Rentang Periode (Dari - Sampai)", value=False)
+        mode_tampilan = st.radio(
+            "Pilih Mode Tampilan:",
+            ["📂 Pilih Per File / Gabung Semua", "📅 Rentang Periode (Dari - Sampai)"],
+            horizontal=True
+        )
         
         try:
-            if use_range:
+            if mode_tampilan == "📅 Rentang Periode (Dari - Sampai)":
                 col_p1, col_p2 = st.columns(2)
                 with col_p1:
                     start_period = st.selectbox("Dari Periode:", csv_files, index=0)
                 with col_p2:
                     end_period = st.selectbox("Sampai Periode:", csv_files, index=len(csv_files)-1)
                 
-                # Cari indeks untuk rentang file
                 start_idx = sort_key(start_period)
                 end_idx = sort_key(end_period)
                 
-                # Validasi dan ambil file sesuai rentang
                 selected_files = [f for f in csv_files if start_idx <= sort_key(f) <= end_idx]
-                
                 if not selected_files:
                     selected_files = [start_period]
                 
@@ -64,6 +64,7 @@ if os.path.exists(data_dir):
                 
                 df = pd.concat(df_list, ignore_index=True)
             else:
+                pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
                 selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu)
                 
                 if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
