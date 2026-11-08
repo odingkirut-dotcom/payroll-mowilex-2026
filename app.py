@@ -55,7 +55,8 @@ if all_files_info:
         filename = item[0] if isinstance(item, tuple) else item
         try:
             prefix = str(filename).split()[0]
-            return float(prefix.replace('.', ''))
+            # Biarkan titik tetap dibaca agar 1.1 berada di antara 1 dan 2
+            return float(prefix)
         except:
             return 999.0
 
@@ -175,7 +176,6 @@ if all_files_info:
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Nama.1', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
         
-        # Helper untuk konversi angka yang aman dari format string ber-koma/titik
         def to_num(series):
             if series.dtype == object:
                 cleaned = series.astype(str).str.replace(',', '').str.replace('Rp', '').str.strip()
@@ -209,7 +209,6 @@ if all_files_info:
                 converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                 formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
         
-        # Format kolom keuangan dengan helper to_num
         for col in kolom_uang:
             if not formatted_df.empty and col in formatted_df.columns:
                 numeric_series = to_num(formatted_df[col])
@@ -217,7 +216,6 @@ if all_files_info:
                     lambda x: f"{x:,.0f}" if x != 0 else ""
                 )
         
-        # Tangani kolom Status Pembayaran
         if not formatted_df.empty:
             for col in formatted_df.columns:
                 if 'status pembayaran' in col.lower():
@@ -286,10 +284,8 @@ if all_files_info:
                 df_total_row = pd.DataFrame([row_total])
                 paginated_df = pd.concat([paginated_df, df_total_row], ignore_index=True)
             
-            # Render Tabel
             st.dataframe(paginated_df, use_container_width=True, height=400, hide_index=True)
             
-            # Kontrol Paginasi di Bagian Bawah Tabel
             col_info, col_space, col_nav = st.columns([2, 1, 1.5])
             with col_info:
                 st.caption(f"Total Data: {total_rows} | Halaman {st.session_state.current_page} dari {total_pages}")
