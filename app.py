@@ -73,16 +73,16 @@ if os.path.exists(data_dir):
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
-            # 2. Deteksi otomatis kolom keuangan atau gunakan daftar lengkap (mencakup variasi pph21, dll)
+            # 2. Deteksi otomatis kolom keuangan secara menyeluruh (termasuk kolom 'total')
             keyword_uang = [
                 'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
-                'pph', 'bpjs', 'biaya', 'transp', 'lain'
+                'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total'
             ]
             
-            # Tentukan kolom mana saja yang termasuk kolom keuangan berdasarkan nama kolomnya
             kolom_uang = []
             for col in formatted_df.columns:
                 col_lower = col.lower()
+                # Pastikan kolom teks identitas tidak masuk ke dalam hitungan uang
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
             
@@ -92,7 +92,7 @@ if os.path.exists(data_dir):
                 numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
                 total_values[col] = numeric_series.sum()
             
-            # Format angka finansial menjadi ribuan murni tanpa desimal
+            # Format angka finansial menjadi ribuan murni tanpa desimal bergaya accounting
             for col in kolom_uang:
                 formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
                     lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
