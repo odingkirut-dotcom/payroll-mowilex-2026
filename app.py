@@ -20,10 +20,9 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
-        # Fungsi untuk mengurutkan file berdasarkan angka di awal nama file secara benar (numerik)
+        # Urutkan file secara numerik (1, 2, 3 ... 10, 11)
         def sort_key(filename):
             try:
-                # Mengambil angka sebelum titik pertama
                 return int(filename.split('.')[0])
             except:
                 return 999
@@ -62,6 +61,21 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
+            # Format angka finansial menjadi string berformat pemisah ribuan agar rapi
+            kolom_uang = [
+                'Gaji Pokok', 'Uang Harian', 'Gaji Pokok Diterima', 
+                'Total Uang harian', 'Uang Pulsa', 'Kompensasi UUCK', 
+                'Honor Bulan Lalu', 'Honor Bulan Lalu.1', 'Lembur', 'Total Terima'
+            ]
+            
+            formatted_df = filtered_df.copy()
+            for col in kolom_uang:
+                if col in formatted_df.columns:
+                    # Ubah ke numerik dulu, lalu format dengan koma pemisah ribuan
+                    formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
+                        lambda x: f"{x:,.2f}" if pd.notnull(x) else ""
+                    )
+            
             # Ringkasan Metrik
             col1, col2, col3 = st.columns(3)
             col1.metric(label="Total Data Ditampilkan", value=filtered_df.shape[0])
@@ -70,7 +84,7 @@ if os.path.exists(data_dir):
             
             # Tampilkan tabel data interaktif
             st.subheader("📋 Tabel Data Karyawan")
-            st.dataframe(filtered_df, use_container_width=True)
+            st.dataframe(formatted_df, use_container_width=True)
             
         except Exception as e:
             st.error(f"Terjadi kesalahan saat memproses data: {e}")
