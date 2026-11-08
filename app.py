@@ -73,7 +73,7 @@ if os.path.exists(data_dir):
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
             
-            # Hitung nilai Grand Total untuk 'Total Terima' dan 'PPh21' (fleksibel mendeteksi variasi nama kolom)
+            # Hitung nilai Grand Total untuk 'Total Terima' dan 'PPh21'
             total_terima_filtered = 0
             pph21_filtered = 0
             
@@ -122,12 +122,10 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik di Atas Tabel (Total Data, Total Terima, dan PPh 21)
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric(label="Data Ditampilkan", value=filtered_df.shape[0])
-            col2.metric(label="Total Seluruh Baris", value=df.shape[0])
-            col3.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
-            col4.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
+            # Ringkasan Metrik di Atas Tabel (Hanya Grand Total Total Terima dan PPh 21)
+            col1, col2 = st.columns(2)
+            col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
+            col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
             
             # Tampilkan tabel data interaktif
             st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
