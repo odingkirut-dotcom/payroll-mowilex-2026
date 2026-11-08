@@ -11,12 +11,12 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk memadatkan ruang atas (padding) dan mempercantik tampilan
+# Custom CSS untuk memadatkan padding dan mempercantik tampilan
 st.markdown("""
     <style>
     /* Mengurangi jarak kosong/padding atas bawaan Streamlit */
     .block-container {
-        padding-top: 2rem !important;
+        padding-top: 1.5rem !important;
         padding-bottom: 2rem !important;
     }
     
@@ -67,18 +67,27 @@ if os.path.exists(data_dir):
                 
         csv_files.sort(key=sort_key)
         
-        # Opsi Pilihan Tampilan Langsung di Halaman Utama
         st.markdown("---")
-        st.subheader("⚙️ Pengaturan Periode & Tampilan Data")
         
-        mode_tampilan = st.radio(
-            "Pilih Mode Tampilan:",
-            ["📂 Pilih Per File / Gabung Semua", "📅 Rentang Periode (Dari - Sampai)"],
-            horizontal=True
-        )
+        # Membuat layout sejajar (2 Kolom: Kiri untuk Periode, Kanan untuk Pencarian)
+        col_filter, col_search = st.columns([1.2, 1])
+        
+        with col_filter:
+            st.markdown("##### ⚙️ Pengaturan Periode")
+            mode_tampilan = st.radio(
+                "Pilih Mode Tampilan:",
+                ["📂 Pilih Per File / Gabung Semua", "📅 Rentang Periode"],
+                horizontal=True,
+                label_visibility="collapsed"
+            )
+        
+        with col_search:
+            st.markdown("##### 🔍 Pencarian Karyawan")
+            search_query = st.text_input("Cari Karyawan:", placeholder="Ketik NIP atau Nama...", label_visibility="collapsed").strip()
         
         try:
-            if mode_tampilan == "📅 Rentang Periode (Dari - Sampai)":
+            # Logika Pemilihan Periode
+            if mode_tampilan == "📅 Rentang Periode":
                 col_p1, col_p2 = st.columns(2)
                 with col_p1:
                     start_period = st.selectbox("Dari Periode:", csv_files, index=0)
@@ -102,7 +111,7 @@ if os.path.exists(data_dir):
                 df = pd.concat(df_list, ignore_index=True)
             else:
                 pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
-                selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu)
+                selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu, label_visibility="collapsed")
                 
                 if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
                     df_list = []
@@ -117,12 +126,8 @@ if os.path.exists(data_dir):
                     file_path = os.path.join(data_dir, selected_option)
                     df = pd.read_csv(file_path, encoding='latin1')
                     df['Periode_File'] = selected_option
-                    st.success(f"Berhasil memuat file: **{selected_option}**")
             
-            # Fitur Pencarian Berdasarkan NIP atau Nama
-            st.markdown("---")
-            search_query = st.text_input("🔍 Cari Karyawan (ketik NIP atau Nama):", "").strip()
-            
+            # Terapkan Filter Pencarian NIP atau Nama
             if search_query:
                 filtered_df = df[
                     df['NIP'].astype(str).str.contains(search_query, case=False, na=False) |
@@ -193,6 +198,7 @@ if os.path.exists(data_dir):
                 formatted_df = pd.concat([formatted_df, df_total_row], ignore_index=True)
             
             # Ringkasan Metrik di Atas Tabel
+            st.markdown("---")
             col1, col2 = st.columns(2)
             col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
             col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
