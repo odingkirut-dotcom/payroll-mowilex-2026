@@ -34,7 +34,7 @@ st.markdown("""
 st.title("📊 Dashboard Payroll & Absensi Mowilex 2026")
 
 # Direktori data
-data_dir = "2026"
+data_dir = "Mowilex/Honor/2026"
 
 if os.path.exists(data_dir):
     files = os.listdir(data_dir)
