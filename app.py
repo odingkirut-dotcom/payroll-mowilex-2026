@@ -194,7 +194,7 @@ if os.path.exists(data_dir):
                     
                     chart_altair = alt.Chart(chart_data).mark_bar(color='#E53935').encode(
                         x=alt.X('Periode_File:N', sort=list(chart_data['Periode_File']), title='Periode File'),
-                        y=alt.Y('Persentase:Q', title='Kontribusi (%)', axis=alt.Axis(format='.1f', suffix='%')),
+                        y=alt.Y('Persentase:Q', title='Kontribusi (%)', axis=alt.Axis(format='.1f')),
                         tooltip=[
                             alt.Tooltip('Periode_File:N', title='Periode'),
                             alt.Tooltip('Formatted_Pct:N', title='Kontribusi')
