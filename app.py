@@ -83,7 +83,7 @@ if os.path.exists(data_dir):
                 for file in selected_files:
                     f_path = os.path.join(data_dir, file)
                     temp_df = pd.read_csv(f_path, encoding='latin1')
-                    temp_df.columns = temp_df.columns.str.strip()  # Bersihkan spasi nama kolom
+                    temp_df.columns = temp_df.columns.str.strip()
                     temp_df['Periode_File'] = file
                     df_list.append(temp_df)
                 
@@ -97,7 +97,7 @@ if os.path.exists(data_dir):
                     for file in csv_files:
                         f_path = os.path.join(data_dir, file)
                         temp_df = pd.read_csv(f_path, encoding='latin1')
-                        temp_df.columns = temp_df.columns.str.strip()  # Bersihkan spasi nama kolom
+                        temp_df.columns = temp_df.columns.str.strip()
                         temp_df['Periode_File'] = file
                         df_list.append(temp_df)
                     
@@ -105,7 +105,7 @@ if os.path.exists(data_dir):
                 else:
                     file_path = os.path.join(data_dir, selected_option)
                     df = pd.read_csv(file_path, encoding='latin1')
-                    df.columns = df.columns.str.strip()  # Bersihkan spasi nama kolom
+                    df.columns = df.columns.str.strip()
                     df['Periode_File'] = selected_option
             
             if search_query:
@@ -116,6 +116,7 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
+            # Deteksi otomatis kolom keuangan (kecuali kolom status/teks)
             keyword_uang = [
                 'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
                 'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total'
@@ -124,6 +125,9 @@ if os.path.exists(data_dir):
             kolom_uang = []
             for col in df.columns:
                 col_lower = col.lower()
+                # Pastikan kolom status pembayaran honor TIDAK masuk ke kolom hitung keuangan
+                if 'status pembayaran' in col_lower:
+                    continue
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
             
@@ -144,6 +148,7 @@ if os.path.exists(data_dir):
             
             formatted_df = filtered_df.copy()
             
+            # Konversi tanggal
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
@@ -152,11 +157,17 @@ if os.path.exists(data_dir):
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
+            # Format kolom keuangan
             for col in kolom_uang:
                 if col in formatted_df.columns:
                     formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
                         lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
                     )
+            
+            # Tangani kolom Status Pembayaran Honor agar tampil normal (string)
+            for col in formatted_df.columns:
+                if 'status pembayaran' in col.lower():
+                    formatted_df[col] = formatted_df[col].fillna('-').astype(str)
             
             excel_df = formatted_df.copy()
             if not excel_df.empty and total_values:
