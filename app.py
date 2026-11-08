@@ -20,7 +20,15 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
-        csv_files.sort()
+        # Fungsi untuk mengurutkan file berdasarkan angka di awal nama file secara benar (numerik)
+        def sort_key(filename):
+            try:
+                # Mengambil angka sebelum titik pertama
+                return int(filename.split('.')[0])
+            except:
+                return 999
+                
+        csv_files.sort(key=sort_key)
         
         # Pilihan menu dropdown
         pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
@@ -36,7 +44,7 @@ if os.path.exists(data_dir):
                     df_list.append(temp_df)
                 
                 df = pd.concat(df_list, ignore_index=True)
-                st.success("Berhasil menggabungkan seluruh file dari semua periode!")
+                st.success("Berhasil menggabungkan seluruh file dari semua periode secara berurutan!")
             else:
                 file_path = os.path.join(data_dir, selected_option)
                 df = pd.read_csv(file_path, encoding='latin1')
