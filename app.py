@@ -64,12 +64,14 @@ if os.path.exists(data_dir):
             # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
-            # 1. Perbaikan Format Tanggal Excel (mengubah angka serial Excel ke tanggal dd mmm yyyy)
+            # 1. Perbaikan Format Tanggal Excel (membersihkan nilai 0 / kosong agar tidak jadi 1899)
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
-                    # Ubah ke numerik, lalu konversi dari serial date Excel (origin 1899-12-30)
                     numeric_dates = pd.to_numeric(formatted_df[col], errors='coerce')
+                    # Abaikan angka 0 atau di bawah 1 (dianggap kosong/belum ada tanggal keluar)
+                    numeric_dates = numeric_dates.apply(lambda x: x if pd.notnull(x) and x > 1 else None)
+                    
                     converted_dates = pd.to_datetime(numeric_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
