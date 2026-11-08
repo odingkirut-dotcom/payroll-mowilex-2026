@@ -11,9 +11,15 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk memperbesar font, merapikan tabel, dan memberikan aksen warna merah
+# Custom CSS untuk memadatkan ruang atas (padding) dan mempercantik tampilan
 st.markdown("""
     <style>
+    /* Mengurangi jarak kosong/padding atas bawaan Streamlit */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+    }
+    
     /* Perbesar font keseluruhan agar lebih nyaman di mata */
     html, body, [class*="css"] {
         font-size: 16px;
@@ -209,7 +215,7 @@ if os.path.exists(data_dir):
                 )
             
             # Tampilkan tabel data interaktif
-            st.dataframe(formatted_df, use_container_width=True, height=450)
+            st.dataframe(formatted_df, use_container_width=True, height=450, hide_index=True)
             
             # --- BAGIAN DIAGRAM BATANG NORMALISASI PERSENTASE (MERAH) ---
             st.markdown("---")
