@@ -22,24 +22,22 @@ if os.path.exists(data_dir):
     if csv_files:
         csv_files.sort()
         
-        # Tambahkan opsi untuk menggabungkan seluruh file di awal list
-         pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
+        # Pilihan menu dropdown
+        pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
         selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu)
         
         try:
             if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
-                # Gabungkan semua file CSV yang ada di folder 2026
                 df_list = []
                 for file in csv_files:
                     f_path = os.path.join(data_dir, file)
                     temp_df = pd.read_csv(f_path, encoding='latin1')
-                    temp_df['Periode_File'] = file # Menandai asal file
+                    temp_df['Periode_File'] = file
                     df_list.append(temp_df)
                 
                 df = pd.concat(df_list, ignore_index=True)
                 st.success("Berhasil menggabungkan seluruh file dari semua periode!")
             else:
-                # Membaca satu file yang dipilih
                 file_path = os.path.join(data_dir, selected_option)
                 df = pd.read_csv(file_path, encoding='latin1')
                 st.success(f"Berhasil memuat file: **{selected_option}**")
