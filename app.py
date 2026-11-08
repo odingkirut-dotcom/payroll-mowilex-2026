@@ -11,44 +11,34 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk memadatkan padding atas secara maksimal dan mempercantik tampilan
+# Custom CSS untuk memangkas habis ruang kosong atas dan membuat layout sangat padat
 st.markdown("""
     <style>
-    /* Pangkas ruang kosong/padding atas bawaan Streamlit secara agresif */
+    /* Pangkas habis padding atas bawaan Streamlit agar langsung naik ke atas */
     .block-container {
-        padding-top: 0.8rem !important;
+        padding-top: 0.3rem !important;
         padding-bottom: 2rem !important;
     }
     
-    /* Perbesar font keseluruhan agar lebih nyaman di mata */
-    html, body, [class*="css"] {
-        font-size: 16px;
+    /* Perkecil margin header agar lebih ringkas */
+    h1 {
+        font-size: 1.8rem !important;
+        margin-bottom: 0px !important;
     }
     
-    /* Perbesar ukuran teks pada metrik */
-    [data-testid="stMetricValue"] {
-        font-size: 2rem !important;
-        color: #C62828 !important;
-    }
-    [data-testid="stMetricLabel"] {
-        font-size: 1.1rem !important;
-        font-weight: 600;
-    }
-    
-    /* Kustomisasi Header & Subheader beraksen merah */
-    h1, h2, h3 {
-        color: #B71C1C;
-    }
-    
-    /* Memperbesar teks isi tabel data */
+    /* Perbesar font isi tabel agar nyaman dibaca */
     .stDataFrame {
         font-size: 15px !important;
+    }
+    
+    /* Warna teks metrik */
+    [data-testid="stMetricValue"] {
+        color: #C62828 !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📊 Dashboard Payroll & Absensi Mowilex 2026")
-st.write("Aplikasi analisis data karyawan Mowilex secara online dan real-time.")
 
 # Direktori data
 data_dir = "2026"
@@ -67,32 +57,28 @@ if os.path.exists(data_dir):
                 
         csv_files.sort(key=sort_key)
         
-        st.markdown("---")
-        
-        # Membuat layout sejajar (2 Kolom: Kiri untuk Periode, Kanan untuk Pencarian)
-        col_filter, col_search = st.columns([1.2, 1])
+        # Layout sejajar yang sangat padat (Periode & Pencarian di baris atas)
+        col_filter, col_search = st.columns([1.3, 1])
         
         with col_filter:
-            st.markdown("##### ⚙️ Pengaturan Periode")
             mode_tampilan = st.radio(
-                "Pilih Mode Tampilan:",
+                "Mode Tampilan:",
                 ["📂 Pilih Per File / Gabung Semua", "📅 Rentang Periode"],
                 horizontal=True,
                 label_visibility="collapsed"
             )
         
         with col_search:
-            st.markdown("##### 🔍 Pencarian Karyawan")
-            search_query = st.text_input("Cari Karyawan:", placeholder="Ketik NIP atau Nama...", label_visibility="collapsed").strip()
+            search_query = st.text_input("Cari Karyawan:", placeholder="🔍 Ketik NIP atau Nama...", label_visibility="collapsed").strip()
         
         try:
             # Logika Pemilihan Periode
             if mode_tampilan == "📅 Rentang Periode":
                 col_p1, col_p2 = st.columns(2)
                 with col_p1:
-                    start_period = st.selectbox("Dari Periode:", csv_files, index=0)
+                    start_period = st.selectbox("Dari Periode:", csv_files, index=0, label_visibility="collapsed")
                 with col_p2:
-                    end_period = st.selectbox("Sampai Periode:", csv_files, index=len(csv_files)-1)
+                    end_period = st.selectbox("Sampai Periode:", csv_files, index=len(csv_files)-1, label_visibility="collapsed")
                 
                 start_idx = sort_key(start_period)
                 end_idx = sort_key(end_period)
@@ -111,7 +97,7 @@ if os.path.exists(data_dir):
                 df = pd.concat(df_list, ignore_index=True)
             else:
                 pilihan_menu = ["📂 Gabungkan SEMUA File (Seluruh Periode)"] + csv_files
-                selected_option = st.selectbox("📂 Pilih Periode / Tampilan Data:", pilihan_menu, label_visibility="collapsed")
+                selected_option = st.selectbox("Pilih Periode:", pilihan_menu, label_visibility="collapsed")
                 
                 if selected_option == "📂 Gabungkan SEMUA File (Seluruh Periode)":
                     df_list = []
@@ -198,24 +184,22 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 excel_df = pd.concat([excel_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik di Atas Tabel
-            st.markdown("---")
-            col1, col2 = st.columns(2)
-            col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
-            col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
+            # Ringkasan Metrik di Atas Tabel (dibuat lebih ringkas)
+            m1, m2 = st.columns(2)
+            m1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
+            m2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
             
             # Header Tabel & Tombol Export ke Excel
-            st.markdown("---")
             col_title, col_export = st.columns([3, 1])
             with col_title:
-                st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
+                st.markdown("##### 📋 Tabel Data Karyawan & Rekapitulasi")
             with col_export:
                 buffer = io.BytesIO()
                 with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
                     excel_df.to_excel(writer, index=False, sheet_name='Data_Payroll')
                 
                 st.download_button(
-                    label="📥 Export ke Excel (.xlsx)",
+                    label="📥 Export ke Excel",
                     data=buffer.getvalue(),
                     file_name="rekap_payroll_mowilex.xlsx",
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -228,19 +212,16 @@ if os.path.exists(data_dir):
             if total_rows > 0:
                 total_pages = (total_rows - 1) // items_per_page + 1
                 
-                # Kontrol navigasi halaman di atas tabel sebelah kanan
                 col_pag_info, col_pag_select = st.columns([2, 1])
                 with col_pag_info:
-                    st.caption(f"Menampilkan total {total_rows} data karyawan (Maks. {items_per_page} baris per halaman)")
+                    st.caption(f"Total: {total_rows} data | Menampilkan maks. {items_per_page} baris per halaman")
                 with col_pag_select:
-                    current_page = st.number_input("Halaman:", min_value=1, max_value=total_pages, value=1, step=1)
+                    current_page = st.number_input("Hal:", min_value=1, max_value=total_pages, value=1, step=1, label_visibility="collapsed")
                 
-                # Potong data sesuai halaman aktif
                 start_idx_page = (current_page - 1) * items_per_page
                 end_idx_page = start_idx_page + items_per_page
                 paginated_df = formatted_df.iloc[start_idx_page:end_idx_page].copy()
                 
-                # Jika ini halaman terakhir, sisipkan baris rekapitulasi total di bagian bawah tabel
                 if current_page == total_pages and total_values:
                     row_total = {col: "" for col in formatted_df.columns}
                     first_col = formatted_df.columns[0]
@@ -253,8 +234,7 @@ if os.path.exists(data_dir):
                     df_total_row = pd.DataFrame([row_total])
                     paginated_df = pd.concat([paginated_df, df_total_row], ignore_index=True)
                 
-                # Tampilkan tabel data interaktif per halaman
-                st.dataframe(paginated_df, use_container_width=True, height=450, hide_index=True)
+                st.dataframe(paginated_df, use_container_width=True, height=400, hide_index=True)
             else:
                 st.info("Tidak ada data karyawan yang ditemukan.")
             
@@ -293,7 +273,7 @@ if os.path.exists(data_dir):
                             alt.Tooltip('Formatted_Pct:N', title='Kontribusi')
                         ]
                     ).properties(
-                        height=400
+                        height=350
                     )
                     
                     st.altair_chart(chart_altair, use_container_width=True)
