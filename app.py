@@ -51,7 +51,6 @@ if os.path.exists(insentif_dir):
             all_files_info.append((f, os.path.join(insentif_dir, f)))
 
 if all_files_info:
-    # Urutkan berdasarkan nomor di depan nama file jika ada
     def sort_key(item):
         filename = item[0]
         try:
@@ -122,6 +121,28 @@ if all_files_info:
                 df.columns = df.columns.str.strip()
                 df['Periode_File'] = selected_option.replace('.csv', '')
         
+        # --- ATUR POSISI KOLOM INSENTIF TEPAT SETELAH '+/- Honor Bulan Lalu' ---
+        if not df.empty:
+            cols = list(df.columns)
+            # Cari kolom target patokan
+            target_col = None
+            for c in cols:
+                if '+/- honor bulan lalu' in c.lower() or 'honor bulan lalu' in c.lower():
+                    target_col = c
+                    break
+            
+            # Cari kolom-kolom insentif atau tambahan dari folder insentif
+            kolom_insentif = [c for c in cols if 'insentif' in c.lower() or 'booster' in c.lower()]
+            
+            if target_col and kolom_insentif:
+                for col_ins in kolom_insentif:
+                    if col_ins in cols:
+                        cols.remove(col_ins)
+                target_idx = cols.index(target_col)
+                for i, col_ins in enumerate(kolom_insentif):
+                    cols.insert(target_idx + 1 + i, col_ins)
+                df = df[cols]
+
         if search_query and not df.empty:
             name_col = 'Nama' if 'Nama' in df.columns else ('Nama.1' if 'Nama.1' in df.columns else None)
             if name_col:
