@@ -158,13 +158,13 @@ if os.path.exists(data_dir):
             # Ringkasan Metrik di Atas Tabel
             col1, col2 = st.columns(2)
             col1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
-            col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
+            col2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_frozen := pph21_filtered:,.0f}" if False else f"Rp {pph21_filtered:,.0f}")
             
             # Tampilkan tabel data interaktif
             st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
             st.dataframe(formatted_df, use_container_width=True)
             
-            # --- BAGIAN DIAGRAM BATANG (BAR CHART) BERWARNA MERAH ---
+            # --- BAGIAN DIAGRAM BATANG (BAR CHART) BERWARNA MERAH & FORMAT ACCOUNTING ---
             st.markdown("---")
             st.subheader("📊 Diagram Batang Tren Berdasarkan Nama File Periode")
             
@@ -181,12 +181,18 @@ if os.path.exists(data_dir):
                     
                     chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
                     chart_data['Sort_ID'] = chart_data['Periode_File'].apply(sort_key)
-                    chart_data = chart_data.sort_values('Sort_ID').set_index('Periode_File')
+                    chart_data = chart_data.sort_values('Sort_ID')
                     
-                    chart_altair = alt.Chart(chart_data.reset_index()).mark_bar(color='#E53935').encode(
-                        x=alt.X('Periode_File:N', sort=list(chart_data.index), title='Periode File'),
-                        y=alt.Y(f'{target_grafik}:Q', title=f'Jumlah {target_grafik}'),
-                        tooltip=['Periode_File', target_grafik]
+                    # Buat kolom format teks akuntansi untuk tooltip agar bersih tanpa desimal
+                    chart_data['Formatted_Value'] = chart_data[target_grafik].apply(lambda x: f"{x:,.0f}")
+                    
+                    chart_altair = alt.Chart(chart_data).mark_bar(color='#E53935').encode(
+                        x=alt.X('Periode_File:N', sort=list(chart_data['Periode_File']), title='Periode File'),
+                        y=alt.Y(f'{target_grafik}:Q', title=f'Jumlah {target_grafik}', axis=alt.Axis(format=',.0f')),
+                        tooltip=[
+                            alt.Tooltip('Periode_File:N', title='Periode'),
+                            alt.Tooltip('Formatted_Value:N', title=f'Jumlah {target_grafik}')
+                        ]
                     ).properties(
                         height=400
                     )
