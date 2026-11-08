@@ -11,27 +11,20 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS untuk merapikan ukuran judul agar tidak terpotong dan menjaga kerapian
+# Custom CSS untuk merapikan tata letak dan ukuran pagination di bawah
 st.markdown("""
     <style>
-    /* Atur padding atas agar judul tampil sempurna dan tidak terpotong */
     .block-container {
         padding-top: 1.2rem !important;
         padding-bottom: 2rem !important;
     }
-    
-    /* Perkecil ukuran judul utama agar pas dan proporsional */
     h1 {
         font-size: 1.4rem !important;
         margin-bottom: 0px !important;
     }
-    
-    /* Perbesar font isi tabel agar nyaman dibaca */
     .stDataFrame {
         font-size: 15px !important;
     }
-    
-    /* Warna teks metrik */
     [data-testid="stMetricValue"] {
         color: #C62828 !important;
     }
@@ -48,7 +41,6 @@ if os.path.exists(data_dir):
     csv_files = [f for f in files if f.endswith('.csv')]
     
     if csv_files:
-        # Urutkan file secara numerik (1, 2, 3 ... 10, 11) berdasarkan angka depan
         def sort_key(filename):
             try:
                 return int(filename.split('.')[0])
@@ -57,7 +49,7 @@ if os.path.exists(data_dir):
                 
         csv_files.sort(key=sort_key)
         
-        # Layout sejajar yang sangat padat (Periode & Pencarian di baris atas)
+        # Layout sejajar atas (Periode & Pencarian)
         col_filter, col_search = st.columns([1.3, 1])
         
         with col_filter:
@@ -72,7 +64,6 @@ if os.path.exists(data_dir):
             search_query = st.text_input("Cari Karyawan:", placeholder="🔍 Ketik NIP atau Nama...", label_visibility="collapsed").strip()
         
         try:
-            # Logika Pemilihan Periode
             if mode_tampilan == "📅 Rentang Periode":
                 col_p1, col_p2 = st.columns(2)
                 with col_p1:
@@ -113,7 +104,6 @@ if os.path.exists(data_dir):
                     df = pd.read_csv(file_path, encoding='latin1')
                     df['Periode_File'] = selected_option
             
-            # Terapkan Filter Pencarian NIP atau Nama
             if search_query:
                 filtered_df = df[
                     df['NIP'].astype(str).str.contains(search_query, case=False, na=False) |
@@ -122,7 +112,6 @@ if os.path.exists(data_dir):
             else:
                 filtered_df = df
             
-            # Deteksi otomatis kolom keuangan secara menyeluruh
             keyword_uang = [
                 'gaji', 'honor', 'lembur', 'terima', 'uang', 'pulsa', 'kompensasi', 
                 'pph', 'bpjs', 'biaya', 'transp', 'lain', 'total'
@@ -134,7 +123,6 @@ if os.path.exists(data_dir):
                 if any(kw in col_lower for kw in keyword_uang) and col not in ['Periode_File', 'NIP', 'Nama', 'Coverage', 'Kota', 'Status', 'Posisi', 'Bank', 'Nomor']:
                     kolom_uang.append(col)
             
-            # Hitung nilai Grand Total untuk 'Total Terima' dan 'PPh21'
             total_terima_filtered = 0
             pph21_filtered = 0
             
@@ -145,16 +133,13 @@ if os.path.exists(data_dir):
                 elif 'pph' in col_lower:
                     pph21_filtered = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0).sum()
             
-            # Hitung total (sum) untuk seluruh kolom keuangan di baris bawah tabel
             total_values = {}
             for col in kolom_uang:
                 numeric_series = pd.to_numeric(filtered_df[col], errors='coerce').fillna(0)
                 total_values[col] = numeric_series.sum()
             
-            # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
-            # 1. Format Tanggal
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
@@ -163,14 +148,12 @@ if os.path.exists(data_dir):
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
-            # 2. Format angka finansial menjadi ribuan murni tanpa desimal bergaya accounting
             for col in kolom_uang:
                 if col in formatted_df.columns:
                     formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
                         lambda x: f"{x:,.0f}" if pd.notnull(x) else ""
                     )
             
-            # Buat salinan lengkap dengan baris total untuk keperluan Excel
             excel_df = formatted_df.copy()
             if not excel_df.empty and total_values:
                 row_total = {col: "" for col in excel_df.columns}
@@ -184,12 +167,12 @@ if os.path.exists(data_dir):
                 df_total_row = pd.DataFrame([row_total])
                 excel_df = pd.concat([excel_df, df_total_row], ignore_index=True)
             
-            # Ringkasan Metrik di Atas Tabel
+            # Ringkasan Metrik di Atas
             m1, m2 = st.columns(2)
             m1.metric(label="Grand Total (Total Terima)", value=f"Rp {total_terima_filtered:,.0f}")
             m2.metric(label="Grand Total (PPh 21)", value=f"Rp {pph21_filtered:,.0f}")
             
-            # Header Tabel & Tombol Export ke Excel
+            # Header Tabel & Tombol Export ke Excel (Sejajar)
             col_title, col_export = st.columns([3, 1])
             with col_title:
                 st.markdown("##### 📋 Tabel Data Karyawan & Rekapitulasi")
@@ -205,24 +188,29 @@ if os.path.exists(data_dir):
                     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                 )
             
-            # --- SISTEM PAGINASI (MAKSIMAL 20 BARIS PER HALAMAN) ---
+            # --- LOGIKA PAGINASI (MAKSIMAL 20 BARIS) ---
             items_per_page = 20
             total_rows = len(formatted_df)
             
             if total_rows > 0:
                 total_pages = (total_rows - 1) // items_per_page + 1
                 
-                col_pag_info, col_pag_select = st.columns([2, 1])
-                with col_pag_info:
-                    st.caption(f"Total: {total_rows} data | Menampilkan maks. {items_per_page} baris per halaman")
-                with col_pag_select:
-                    current_page = st.number_input("Hal:", min_value=1, max_value=total_pages, value=1, step=1, label_visibility="collapsed")
+                # Tampilkan tabel terlebih dahulu
+                start_idx_page = 0
+                end_idx_page = items_per_page
                 
-                start_idx_page = (current_page - 1) * items_per_page
+                # Gunakan session_state untuk menyimpan halaman aktif
+                if 'current_page' not in st.session_state:
+                    st.session_state.current_page = 1
+                
+                if st.session_state.current_page > total_pages:
+                    st.session_state.current_page = total_pages
+                
+                start_idx_page = (st.session_state.current_page - 1) * items_per_page
                 end_idx_page = start_idx_page + items_per_page
                 paginated_df = formatted_df.iloc[start_idx_page:end_idx_page].copy()
                 
-                if current_page == total_pages and total_values:
+                if st.session_state.current_page == total_pages and total_values:
                     row_total = {col: "" for col in formatted_df.columns}
                     first_col = formatted_df.columns[0]
                     row_total[first_col] = "TOTAL Keseluruhan"
@@ -234,7 +222,22 @@ if os.path.exists(data_dir):
                     df_total_row = pd.DataFrame([row_total])
                     paginated_df = pd.concat([paginated_df, df_total_row], ignore_index=True)
                 
+                # Render Tabel
                 st.dataframe(paginated_df, use_container_width=True, height=400, hide_index=True)
+                
+                # Kontrol Paginasi di Bagian Bawah Tabel (Kecil & Rapi)
+                col_info, col_space, col_nav = st.columns([2, 1, 1.5])
+                with col_info:
+                    st.caption(f"Total Data: {total_rows} | Halaman {st.session_state.current_page} dari {total_pages}")
+                with col_nav:
+                    st.session_state.current_page = st.number_input(
+                        "Pilih Halaman:", 
+                        min_value=1, 
+                        max_value=total_pages, 
+                        value=st.session_state.current_page, 
+                        step=1, 
+                        label_visibility="collapsed"
+                    )
             else:
                 st.info("Tidak ada data karyawan yang ditemukan.")
             
