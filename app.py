@@ -64,14 +64,14 @@ if os.path.exists(data_dir):
             # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
-            # 1. Format Tanggal untuk kolom 'Masuk' dan 'Keluar' (dd mmm yyyy)
+            # 1. Perbaikan Format Tanggal Excel (mengubah angka serial Excel ke tanggal dd mmm yyyy)
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
-                    # Ubah ke datetime, lalu format ke string 'dd mmm yyyy' (contoh: 16 Jan 2026)
-                    formatted_df[col] = pd.to_datetime(formatted_df[col], errors='coerce').dt.strftime('%d %b %Y')
-                    # Ganti nilai NaT (Not a Time) / kosong menjadi string kosong
-                    formatted_df[col] = formatted_df[col].fillna('')
+                    # Ubah ke numerik, lalu konversi dari serial date Excel (origin 1899-12-30)
+                    numeric_dates = pd.to_numeric(formatted_df[col], errors='coerce')
+                    converted_dates = pd.to_datetime(numeric_dates, unit='D', origin='1899-12-30', errors='coerce')
+                    formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
             # 2. Format Angka Finansial menjadi ribuan murni tanpa desimal
             kolom_uang = [
