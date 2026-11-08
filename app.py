@@ -64,24 +64,24 @@ if os.path.exists(data_dir):
             # Buat salinan untuk diformat
             formatted_df = filtered_df.copy()
             
-            # 1. Perbaikan Format Tanggal yang aman dari teks/None
+            # 1. Perbaikan Format Tanggal
             kolom_tanggal = ['Masuk', 'Keluar']
             for col in kolom_tanggal:
                 if col in formatted_df.columns:
-                    # Konversi paksa ke numerik (jika gagal/teks akan menjadi NaN)
                     numeric_dates = pd.to_numeric(formatted_df[col], errors='coerce')
-                    # Hanya ambil angka di atas 1 (mengabaikan 0, NaN, atau teks)
                     valid_dates = numeric_dates.where(numeric_dates > 1, other=pd.NA)
-                    
                     converted_dates = pd.to_datetime(valid_dates, unit='D', origin='1899-12-30', errors='coerce')
                     formatted_df[col] = converted_dates.dt.strftime('%d %b %Y').fillna('')
             
-            # 2. Format Angka Finansial menjadi ribuan murni tanpa desimal
+            # 2. Daftar LENGKAP seluruh kolom keuangan/finansial yang perlu diformat *accounting*
             kolom_uang = [
-                'Gaji Pokok', 'Uang Harian', 'Gaji Pokok Diterima', 
-                'Total Uang harian', 'Uang Pulsa', 'Kompensasi UUCK', 
-                'Honor Bulan Lalu', 'Honor Bulan Lalu.1', 'Lembur', 'Total Terima'
+                'Gaji Pokok', 'Uang Harian', 'Gaji Pokok Diterima', 'Total Uang harian', 
+                'Uang Pulsa', 'Kompensasi UUCK', 'Honor Bulan Lalu', 'Honor Bulan Lalu.1', 
+                'Lembur', 'Total Terima', 'Total Honor', 'PPH21', 'BPJS TK 3%', 
+                'BPJS KS 1%', 'BPJS KS 1%.1', 'Biaya Transfer', '+/- Honor Bulan Lalu', 
+                'Total', 'Biaya', '( F - 04 )', 'Transp. LK', '( F - 05 )', '+/- Biaya Bulan lalu', 'Lain - Lain'
             ]
+            
             for col in kolom_uang:
                 if col in formatted_df.columns:
                     formatted_df[col] = pd.to_numeric(formatted_df[col], errors='coerce').apply(
