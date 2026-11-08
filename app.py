@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
+import altair as alt
 
 # Konfigurasi halaman Streamlit
 st.set_page_config(
@@ -43,7 +44,6 @@ if os.path.exists(data_dir):
                     df_list.append(temp_df)
                 
                 df = pd.concat(df_list, ignore_index=True)
-                st.success("Berhasil menggabungkan seluruh file dari semua periode secara berurutan!")
             else:
                 file_path = os.path.join(data_dir, selected_option)
                 df = pd.read_csv(file_path, encoding='latin1')
@@ -132,7 +132,7 @@ if os.path.exists(data_dir):
             st.subheader("📋 Tabel Data Karyawan & Rekapitulasi Total")
             st.dataframe(formatted_df, use_container_width=True)
             
-            # --- BAGIAN DIAGRAM BATANG (BAR CHART) DENGAN WARNA MERAH ---
+            # --- BAGIAN DIAGRAM BATANG (BAR CHART) BERWARNA MERAH ---
             st.markdown("---")
             st.subheader("📊 Diagram Batang Tren Berdasarkan Nama File Periode")
             
@@ -150,9 +150,6 @@ if os.path.exists(data_dir):
                     chart_data = df_chart.groupby('Periode_File')[target_grafik].sum().reset_index()
                     chart_data['Sort_ID'] = chart_data['Periode_File'].apply(sort_key)
                     chart_data = chart_data.sort_values('Sort_ID').set_index('Periode_File')
-                    
-                    # Menggunakan Altair untuk kustomisasi Diagram Batang (Bar Chart) berwarna Merah
-                    import altair as alt
                     
                     chart_altair = alt.Chart(chart_data.reset_index()).mark_bar(color='#E53935').encode(
                         x=alt.X('Periode_File:N', sort=list(chart_data.index), title='Periode File'),
